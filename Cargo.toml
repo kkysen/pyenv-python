@@ -1,0 +1,19 @@
+[package]
+name = "pyenv-python"
+version = "0.1.0"
+authors = ["Khyber Sen <kkysen@gmail.com>"]
+edition = "2018"
+description = "A pyenv shim for python that's much faster than pyenv."
+license = "MIT"
+repository = "https://github.com/kkysen/pyenv-python"
+homepage = "https://github.com/kkysen/pyenv-python/blob/master/README.md"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+print_bytes = "0.2.0"
+
+[profile.release]
+lto = true
+panic = "abort"
+opt-level = "z"
