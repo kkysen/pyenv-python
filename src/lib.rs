@@ -1,6 +1,5 @@
 use std::path::PathBuf;
 use std::env;
-use std::ffi::OsString;
 
 mod version;
 
@@ -19,7 +18,7 @@ pub fn pyenv_root() -> Option<PathBuf> {
 /// Returns the current pyenv version as determined by
 ///     <https://github.com/pyenv/pyenv#choosing-the-python-version>.
 /// If none is found, then None is returned.
-pub fn pyenv_version() -> Option<OsString> {
+pub fn pyenv_version() -> Option<String> {
     let root = pyenv_root()?;
     let version = version::pyenv_version(root.as_path())?;
     Some(version)
