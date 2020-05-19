@@ -16,13 +16,6 @@ pub enum CacheType {
 }
 
 impl CacheType {
-    pub fn as_str(&self) -> &str {
-        match self {
-            Help => "help",
-            Versions => "versions",
-        }
-    }
-    
     pub fn invalidates(&self) -> &[CacheType] {
         match self {
             Help => &[Help, Versions],
@@ -46,18 +39,18 @@ fn run_as_pyenv() -> Output {
 }
 
 impl CacheBehavior {
-    pub fn run(&self) {
+    pub fn run(self) {
         let mut cache = Cache::default(); // TODO load from cache file and lock file
         let output = match self {
             Cache(cache_type) => {
                 let output = cache
-                    .get(cache_type)
+                    .get(&cache_type)
                     .or_insert_with(run_as_pyenv);
                 (*output).clone()
             }
             Ignore => run_as_pyenv(),
             Invalidate(cache_type) => {
-                cache.invalidate(cache_type);
+                cache.invalidate(&cache_type);
                 run_as_pyenv()
             }
         };
@@ -101,7 +94,7 @@ impl Cache {
     }
     
     fn invalidate_only(&mut self, cache_type: &CacheType) {
-        self.mut_cache_for(cache_type).clear();
+        self.cache_for(cache_type).clear();
     }
     
     pub fn invalidate(&mut self, cache_type: &CacheType) {

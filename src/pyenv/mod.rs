@@ -17,10 +17,31 @@ pub mod version {
     use std::path::{PathBuf, Path};
     use std::env::current_dir;
     use crate::pyenv::version::Origin::System;
+    use std::{io, fs};
+    use std::fs::File;
+    use std::io::{BufReader, ErrorKind, BufRead};
+    
+    pub struct VersionFile {
+        pub path: PathBuf,
+    }
+    
+    impl VersionFile {
+        pub fn read(&self) -> io::Result<String> {
+            let file = File::open(&self.path)?;
+            let reader = BufReader::new(file);
+            let version = reader.lines().next().ok_or(ErrorKind::NotFound)??;
+            Ok(version)
+        }
+        
+        pub fn write(&self, name: String) -> io::Result<()> {
+            fs::write(&self.path, name)?;
+            Ok(())
+        }
+    }
     
     pub enum Origin {
         Shell,
-        File(PathBuf),
+        File(VersionFile),
         System,
     }
     
@@ -68,4 +89,6 @@ pub fn shims(short: bool) -> Vec<PathBuf> {
     todo!()
 }
 
-pub fn which(command: &Path) -> Option<PathBuf> {}
+pub fn which(command: &Path) -> Option<PathBuf> {
+    todo!()
+}
