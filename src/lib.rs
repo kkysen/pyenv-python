@@ -43,7 +43,7 @@ pub fn pyenv_python_path() -> Option<PathBuf> {
 pub fn system_python_path() -> Option<PathBuf> {
     let path_var = env::var_os("PATH")?;
     let current_path = env::current_exe().ok()?;
-    let current_handle = Handle::from_path(current_path)?;
+    let current_handle = Handle::from_path(current_path).ok()?;
     for mut path in env::split_paths(&path_var) {
         path.push("python");
         if let Ok(handle) = Handle::from_path(path.as_path()) {
