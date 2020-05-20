@@ -2,7 +2,8 @@ use pyenv_python::python_path;
 use std::process::exit;
 use std::env;
 
-/// Run the current `python` (as determined by `pyenv`) with the given args (using exec::Command).
+/// Run the current `python` (as determined by `pyenv`) with the given args.
+/// Uses exec::Command on unix and std::process::Command elsewhere.
 #[cfg(unix)]
 fn main() {
     let path = python_path().expect("python not found");
@@ -11,7 +12,8 @@ fn main() {
     exit(1);
 }
 
-/// Run the current `python` (as determined by `pyenv`) with the given args (using std::process::Command).
+/// Run the current `python` (as determined by `pyenv`) with the given args.
+/// Uses exec::Command on unix and std::process::Command elsewhere.
 #[cfg(not(unix))]
 fn main() {
     use std::process::Command;

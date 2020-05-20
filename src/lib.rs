@@ -4,8 +4,8 @@ use same_file::Handle;
 
 mod version;
 
-/// Returns what $(pyenv root) would return.
-/// That is, $PYENV_ROOT or $HOME/.pyenv if they exist
+/// Returns what `$(pyenv root)` would return.
+/// That is, `$PYENV_ROOT` or `$HOME/.pyenv` if they exist
 pub fn pyenv_root() -> Option<PathBuf> {
     env::var_os("PYENV_ROOT")
         .or_else(|| env::var_os("HOME").map(|mut home| {

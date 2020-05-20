@@ -5,7 +5,6 @@ authors = ["Khyber Sen <kkysen@gmail.com>"]
 edition = "2018"
 description = "A pyenv shim for python that's much faster than pyenv."
 license = "MIT"
-license-file = "LICENSE"
 repository = "https://github.com/kkysen/pyenv-python"
 homepage = "https://github.com/kkysen/pyenv-python/blob/master/README.md"
 readme = "README.md"
