@@ -17,21 +17,22 @@ Using this `python` shim, the time for `python --version` is unnoticeable.
 
 ### Performance
 On my local computer, `$CARGO_HOME/bin/python --version` runs 
-about 10x faster than `$PYENV_ROOT/shims/python --version`.
+about 23x faster than `$PYENV_ROOT/shims/python --version`.
 
-```
-workspace/misc/pyenv-python-test via 🐍 v3.5.9 took 19s
-❯ hyperfine '$CARGO_HOME/bin/python --version'
+```console
+pyenv-python on  master [!] is 📦 v0.1.0 via 🦀 v1.44.0-nightly took 23s
+❯ hyperfine '$CARGO_HOME/bin/python --version' '$PYENV_ROOT/shims/python --version'
 Benchmark #1: $CARGO_HOME/bin/python --version
-  Time (mean ± σ):      65.3 ms ±   5.8 ms    [User: 1.8 ms, System: 56.7 ms]
-  Range (min … max):    57.6 ms …  85.8 ms    32 runs
+  Time (mean ± σ):      11.8 ms ±   1.3 ms    [User: 1.3 ms, System: 9.6 ms]
+  Range (min … max):    10.1 ms …  18.4 ms    181 runs
 
+Benchmark #2: $PYENV_ROOT/shims/python --version
+  Time (mean ± σ):     270.6 ms ±   6.6 ms    [User: 20.3 ms, System: 238.9 ms]
+  Range (min … max):   265.7 ms … 288.5 ms    10 runs
 
-workspace/misc/pyenv-python-test via 🐍 v3.5.9 took 21s
-❯ hyperfine '$PYENV_ROOT/shims/python --version'
-Benchmark #1: $PYENV_ROOT/shims/python --version
-  Time (mean ± σ):     715.3 ms ± 164.2 ms    [User: 57.3 ms, System: 649.7 ms]
-  Range (min … max):   593.1 ms … 1055.0 ms    10 runs
+Summary
+  '$CARGO_HOME/bin/python --version' ran
+   23.00 ± 2.62 times faster than '$PYENV_ROOT/shims/python --version'
 ```
 
 ### Installation
