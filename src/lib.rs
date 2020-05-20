@@ -39,16 +39,26 @@ pub fn pyenv_python_path() -> Option<PathBuf> {
     Some(path).filter(|path| path.is_file())
 }
 
-/// Returns the system `python` on $PATH, excluding this program.
+/// Returns the system `python` on `$PATH`, excluding this program (when run as `python`).
+/// If pyenv is installed, then `$PYENV_ROOT/shims/python` is skipped, too.
+/// Otherwise, an infinite loop would be formed between ourselves and `$PYENV_ROOT/shims/python`.
 pub fn system_python_path() -> Option<PathBuf> {
     let path_var = env::var_os("PATH")?;
-    let current_path = env::current_exe().ok()?;
+    let current_path = {
+        let mut path = env::current_exe().ok()?;
+        path.set_file_name("python");
+        path
+    };
     let current_handle = Handle::from_path(current_path).ok()?;
+    let pyenv_python_handle = pyenv_root()
+        .map(|root| root.join("shims/python"))
+        .filter(|path| path.is_file())
+        .and_then(|path| Handle::from_path(path).ok());
     for mut path in env::split_paths(&path_var) {
         path.push("python");
         if let Ok(handle) = Handle::from_path(path.as_path()) {
             // Ok if path exists
-            if current_handle != handle {
+            if current_handle != handle && pyenv_python_handle != Some(handle) {
                 return Some(path);
             }
         }
