@@ -15,6 +15,26 @@ Python version on the prompt, but if `pyenv`'s `python` shim
 takes ~1 sec, it makes the prompt painfully slow.
 Using this `python` shim, the time for `python --version` is unnoticeable.
 
+#### Fast Script Invocation
+For all globally install programs, like through `pip install`, 
+`pyenv` places a shim file in `$PYENV_ROOT/shims`, which is placed in `$PATH`.  
+This shim has to call the real script throuh `pyenv`, 
+which makes every script startup very slow, 
+adding up to 1 second to every script,
+even on simple `--help` commands.
+
+As a solution, `pyenv-python`'s `python` executable supports 
+invoking scripts with no overhead.
+If `python` is symlinked to `script`,
+then when `./script` is run, it calls `python script`,
+where `script` should be in the same directory as the real `python`.
+That is, if `python` is the real `python` executable,
+then `./script` calls `python "$(dirname "$(which python)")"/script`.
+
+Installed `python` scripts are normally installed
+in the same directory as `python`, 
+so this makes it very easy to invoke scripts with no `pyenv` overhead.
+
 ### Performance
 On my local computer, `$CARGO_HOME/bin/python --version` runs 
 about 23x faster than `$PYENV_ROOT/shims/python --version`.
@@ -36,8 +56,21 @@ Summary
 ```
 
 ### Installation
-It's just published to `crates.io`, so you need `cargo` from `rustup` to install. 
+It's just published to `crates.io`, 
+so you need `cargo` from `rustup` to install it.
 
-Then `cargo install pyenv-python` will install `python` and `python-path`.
+Then `cargo install pyenv-python` will install the `python` wrapper.
 For this `python` to wrap the `pyenv` `python` or the system `python`, 
-it `$CARGO_HOME/bin` must be before any other `python`s in `$PATH`.
+`$CARGO_HOME/bin` must be before any other `python`s in `$PATH`.
+
+This `python` wrapper also supports a few other commands.
+* `python --path` prints the path of the `python` that it will execute.
+* `python --prefix` prints the directory of the `python` that it will execute.
+  This is the same as what `python -c 'import sys; print(sys.prefix)''` prints.
+
+These extra commands aren't compatible with actual `python`,
+but they don't clash with any actual `python` commands, 
+and they're very useful for inspection.
+Previously, there was a separate `python-path` executable
+that did what `python --path` now does,
+but having one executable is much simpler.

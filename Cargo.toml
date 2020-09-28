@@ -1,6 +1,6 @@
 [package]
 name = "pyenv-python"
-version = "0.1.1"
+version = "0.2.0"
 authors = ["Khyber Sen <kkysen@gmail.com>"]
 edition = "2018"
 description = "A pyenv shim for python that's much faster than pyenv."
@@ -14,8 +14,11 @@ keywords = ["python", "pyenv"]
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-print_bytes = "0.2.0"
+print_bytes = "0.3.1"
 same-file = "1.0.6"
+is_executable = "0.1.2"
+thiserror = "1.0.20"
+anyhow = "1.0.32"
 
 [target.'cfg(unix)'.dependencies]
 exec = "0.3.1"

@@ -1,6 +1,9 @@
+#![forbid(unsafe_code)]
+
 use std::path::PathBuf;
 use std::env;
 use same_file::Handle;
+use is_executable::IsExecutable;
 
 mod version;
 
@@ -36,7 +39,9 @@ pub fn pyenv_python_path() -> Option<PathBuf> {
     path.push(version);
     path.push("bin");
     path.push("python");
-    Some(path).filter(|path| path.is_file())
+    Some(path)
+        .filter(|path| path.is_file())
+        .filter(|path| path.is_executable())
 }
 
 /// Returns the system `python` on `$PATH`, excluding this program (when run as `python`).
