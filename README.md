@@ -65,8 +65,11 @@ For this `python` to wrap the `pyenv` `python` or the system `python`,
 
 This `python` wrapper also supports a few other commands.
 * `python --path` prints the path of the `python` that it will execute.
-* `python --prefix` prints the directory of the `python` that it will execute.
-  This is the same as what `python -c 'import sys; print(sys.prefix)''` prints.
+* `python --dir` prints the directory of the `python` that it will execute, 
+  i.e. `dirname $(python --path)`.
+* `python --prefix` prints the prefix directory of the `python` that it will execute,
+  i.e. `dirname $(python --dir)`.
+  This is the same as what `python -c 'import sys; print(sys.prefix)'` prints.
 
 These extra commands aren't compatible with actual `python`,
 but they don't clash with any actual `python` commands, 

@@ -239,10 +239,28 @@ fn exec_cmd(mut cmd: std::process::Command) -> anyhow::Result<()> {
 fn main() -> anyhow::Result<()> {
     let python_path_buf = python_path().context("python not found")?;
     let python_path = python_path_buf.as_path();
-    match env::args().nth(1).unwrap_or_default().as_str() {
-        "--path" => println_bytes(python_path),
-        "--prefix" => println_bytes(python_path.parent().unwrap()),
-        _ => Argv0Program::new(python_path_buf)?.run(exec_cmd)?,
+    let parent_level: Option<usize> = match env::args()
+        .nth(1)
+        .unwrap_or_default()
+        .as_str() {
+        "--path" => Some(0),
+        "--dir" => Some(1),
+        "--prefix" => Some(2),
+        _ => None,
+    };
+    match parent_level {
+        None => Argv0Program::new(python_path_buf)?.run(exec_cmd)?,
+        Some(level) => {
+            let mut dir = python_path;
+            for current_level in 0..level {
+                dir = dir.parent()
+                    .with_context(|| format!(
+                        "python --path doesn't have {} parent directories",
+                        current_level,
+                    ))?;
+            }
+            println_bytes(dir);
+        }
     }
     Ok(())
 }
