@@ -1,9 +1,9 @@
 #![forbid(unsafe_code)]
 
 use pyenv_python::python_path;
-use std::process::exit;
+use std::process::{exit, Command};
+use std::os::unix::process::CommandExt;
 use std::{env, io};
-use std::ffi::OsStr;
 use anyhow::Context;
 use std::path::{Path, PathBuf};
 use thiserror::Error;
@@ -12,42 +12,6 @@ use std::fs::File;
 use std::io::{BufReader, BufRead, Read};
 use print_bytes::println_bytes;
 use crate::Argv0ProgramType::{Binary, PythonScript, Script};
-
-trait Command {
-    fn new<S: AsRef<OsStr>>(program: S) -> Self;
-    
-    fn arg<S: AsRef<OsStr>>(&mut self, arg: S) -> &mut Self;
-    
-    fn args<I, S>(&mut self, args: I) -> &mut Self
-        where
-            I: IntoIterator<Item = S>,
-            S: AsRef<OsStr> {
-        for arg in args {
-            self.arg(arg.as_ref());
-        }
-        self
-    }
-}
-
-impl Command for std::process::Command {
-    fn new<S: AsRef<OsStr>>(program: S) -> Self {
-        std::process::Command::new(program)
-    }
-    
-    fn arg<S: AsRef<OsStr>>(&mut self, arg: S) -> &mut Self {
-        <std::process::Command>::arg(self, arg)
-    }
-}
-
-impl Command for exec::Command {
-    fn new<S: AsRef<OsStr>>(program: S) -> Self {
-        exec::Command::new(program)
-    }
-    
-    fn arg<S: AsRef<OsStr>>(&mut self, arg: S) -> &mut Self {
-        <exec::Command>::arg(self, arg)
-    }
-}
 
 #[derive(Eq, PartialEq)]
 enum Argv0ProgramType {
@@ -150,7 +114,7 @@ impl Argv0ProgramType {
             // it might be UTF-8, so String decoding will fail
             let mut first_line = String::new();
             reader.read_line(&mut first_line).map_err(with_err)?;
-            let is_python_script = first_line.contains("python");
+            let is_python_script = ["python", "pip"].iter().any(|word| first_line.contains(word));
             if is_python_script {
                 PythonScript
             } else {
@@ -196,8 +160,13 @@ impl Argv0Program {
             .filter(|_| self.exe_type == PythonScript)
     }
     
-    fn to_command<Cmd: Command>(&self) -> Cmd {
-        let mut cmd = Cmd::new(self.argv0());
+    fn to_command(&self) -> Command {
+        let mut cmd = Command::new(self.argv0());
+        if cfg!(unix) {
+            if let Some(arg0) = env::args_os().nth(0) {
+                cmd.arg0(arg0);
+            }
+        }
         if let Some(script) = self.python_script() {
             cmd.arg(script.as_os_str());
         }
@@ -208,14 +177,14 @@ impl Argv0Program {
     /// Run, allowing for architectural abstraction over Command.
     /// Either [`exec::Command`] should be used on unix,
     /// or [`std::process::Command`] as a backup.
-    fn run<F, Cmd: Command>(&self, run: F) -> anyhow::Result<()>
-        where F: FnOnce(Cmd) -> anyhow::Result<()> {
+    fn run<F>(&self, run: F) -> anyhow::Result<()>
+        where F: FnOnce(Command) -> anyhow::Result<()> {
         run(self.to_command())
     }
 }
 
 #[cfg(unix)]
-fn exec_cmd(mut cmd: exec::Command) -> anyhow::Result<()> {
+fn exec(mut cmd: Command) -> anyhow::Result<()> {
     let error = cmd.exec();
     Err(error)?;
     exit(1);
@@ -249,7 +218,7 @@ fn main() -> anyhow::Result<()> {
         _ => None,
     };
     match parent_level {
-        None => Argv0Program::new(python_path_buf)?.run(exec_cmd)?,
+        None => Argv0Program::new(python_path_buf)?.run(exec)?,
         Some(level) => {
             let mut dir = python_path;
             for current_level in 0..level {
