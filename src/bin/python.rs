@@ -1,16 +1,20 @@
 #![forbid(unsafe_code)]
 
-use pyenv_python::python_path;
-use std::process::{exit, Command};
-use std::os::unix::process::CommandExt;
 use std::{env, io};
-use anyhow::Context;
-use std::path::{Path, PathBuf};
-use thiserror::Error;
-use is_executable::IsExecutable;
+use std::ffi::OsStr;
 use std::fs::File;
-use std::io::{BufReader, BufRead, Read};
+use std::io::{BufRead, BufReader, Read};
+use std::path::{Path, PathBuf};
+use std::process::Command;
+
+use anyhow::Context;
+use apply::Apply;
+use is_executable::IsExecutable;
 use print_bytes::println_bytes;
+use thiserror::Error;
+
+use pyenv_python::python_path;
+
 use crate::Argv0ProgramType::{Binary, PythonScript, Script};
 
 #[derive(Eq, PartialEq)]
@@ -162,10 +166,8 @@ impl Argv0Program {
     
     fn to_command(&self) -> Command {
         let mut cmd = Command::new(self.argv0());
-        if cfg!(unix) {
-            if let Some(arg0) = env::args_os().nth(0) {
-                cmd.arg0(arg0);
-            }
+        if let Some(arg0) = env::args_os().nth(0) {
+            cmd.arg0(arg0);
         }
         if let Some(script) = self.python_script() {
             cmd.arg(script.as_os_str());
@@ -173,33 +175,46 @@ impl Argv0Program {
         cmd.args(env::args_os().skip(1));
         cmd
     }
+}
+
+/// Most of the same extension methods as [`std::os::unix::process::CommandExt`],
+/// except this is also implemented on `cfg(not(unix))`,
+/// either with a fallback (`exec`) or not at all (`arg0`).
+trait CommandExt2 {
+    fn exec(&mut self) -> io::Error;
     
-    /// Run, allowing for architectural abstraction over Command.
-    /// Either [`exec::Command`] should be used on unix,
-    /// or [`std::process::Command`] as a backup.
-    fn run<F>(&self, run: F) -> anyhow::Result<()>
-        where F: FnOnce(Command) -> anyhow::Result<()> {
-        run(self.to_command())
+    fn arg0<S: AsRef<OsStr>>(&mut self, _arg: S) -> &mut Command;
+}
+
+#[cfg(not(unix))]
+impl CommandExt2 for Command {
+    fn exec(&mut self) -> io::Error {
+        match self.status() {
+            Ok(status) => status
+                .code()
+                .unwrap_or_default()
+                .apply(std::process::exit),
+            Err(e) => return e,
+        }
+    }
+    
+    fn arg0<S: AsRef<OsStr>>(&mut self, _arg: S) -> &mut Command {
+        self
     }
 }
 
 #[cfg(unix)]
-fn exec(mut cmd: Command) -> anyhow::Result<()> {
-    let error = cmd.exec();
-    Err(error)?;
-    exit(1);
-}
-
-#[cfg(not(unix))]
-fn exec_cmd(mut cmd: std::process::Command) -> anyhow::Result<()> {
-    let status = cmd
-        .status().context("failed to run python subprocess")?
-        .code().unwrap_or_default();
-    exit(status);
+impl CommandExt2 for Command {
+    fn exec(&mut self) -> io::Error {
+        std::os::unix::process::CommandExt::exec(self)
+    }
+    
+    fn arg0<S: AsRef<OsStr>>(&mut self, arg: S) -> &mut Self {
+        std::os::unix::process::CommandExt::arg0(self, arg)
+    }
 }
 
 /// Run the current `python` (as determined by `pyenv`) with the given args.
-/// Uses [`exec::Command`] on unix and [`std::process::Command`] elsewhere.
 /// If --path is the only arg, print `python`'s path.
 /// If --prefix is the only arg, print `python`'s directory,
 /// the same as `python -c 'import sys; print(sys.prefix)'`.
@@ -218,7 +233,11 @@ fn main() -> anyhow::Result<()> {
         _ => None,
     };
     match parent_level {
-        None => Argv0Program::new(python_path_buf)?.run(exec)?,
+        None => Argv0Program::new(python_path_buf)?
+            .to_command()
+            .exec()
+            .apply(Err)
+            .context("failed to run python subprocess")?,
         Some(level) => {
             let mut dir = python_path;
             for current_level in 0..level {

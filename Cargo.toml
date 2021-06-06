@@ -14,11 +14,12 @@ keywords = ["python", "pyenv"]
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-print_bytes = "0.3.1"
+print_bytes = "0.4.2"
 same-file = "1.0.6"
-is_executable = "0.1.2"
-thiserror = "1.0.20"
-anyhow = "1.0.32"
+is_executable = "1.0.1"
+thiserror = "1.0.25"
+anyhow = "1.0.40"
+apply = "0.3.0"
 
 [profile.release]
 lto = true
