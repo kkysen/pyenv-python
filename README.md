@@ -18,7 +18,7 @@ Using this `python` shim, the time for `python --version` is unnoticeable.
 #### Fast Script Invocation
 For all globally install programs, like through `pip install`, 
 `pyenv` places a shim file in `$PYENV_ROOT/shims`, which is placed in `$PATH`.  
-This shim has to call the real script throuh `pyenv`, 
+This shim has to call the real script through `pyenv`, 
 which makes every script startup very slow, 
 adding up to 1 second to every script,
 even on simple `--help` commands.
@@ -32,8 +32,11 @@ That is, if `python` is the real `python` executable,
 then `./script` calls `python "$(dirname "$(which python)")"/script`.
 
 Installed `python` scripts are normally installed
-in the same directory as `python`, 
+in the same directory as `python`,
 so this makes it very easy to invoke scripts with no `pyenv` overhead.
+
+This can also be done for other binaries not named `python`, 
+such as `python2` or `python3`.
 
 ### Performance
 On my local computer, `$CARGO_HOME/bin/python --version` runs 
@@ -78,3 +81,4 @@ and they're very useful for inspection.
 Previously, there was a separate `python-path` executable
 that did what `python --path` now does,
 but having one executable is much simpler.
+
