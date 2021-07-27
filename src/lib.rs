@@ -179,9 +179,7 @@ impl PythonExecutable {
     }
     
     pub fn name(&self) -> &OsStr {
-        self.name
-            .as_ref()
-            .map(|name| name.as_os_str())
+        self.name.as_deref()
             .unwrap_or_else(|| self.path.file_name()
                 .expect("python executable should always have a file name (i.e. not root)")
             )
@@ -230,7 +228,7 @@ impl PythonExecutable {
     
     pub fn current() -> io::Result<Self> {
         let name = env::args_os()
-            .nth(0)
+            .next()
             .map(PathBuf::from)
             .and_then(|path| path.file_name().map(|name| name.to_os_string()));
         // TODO What to do if arg0 doesn't exist or is `/` (no file name)?

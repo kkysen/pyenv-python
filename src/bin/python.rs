@@ -119,7 +119,7 @@ impl Argv0ProgramType {
         // so I'm not adding any context to the default anyhow::Error
         let file = File::open(path).map_err(with_err)?;
         let mut reader = BufReader::new(file);
-        let mut shebang = [0 as u8; 2];
+        let mut shebang = [0_u8; 2];
         reader.read(&mut shebang).map_err(with_err)?;
         let is_script = &shebang == b"#!";
         let exe_type = if !is_script {
@@ -145,7 +145,7 @@ impl Argv0ProgramType {
 impl Argv0Program {
     fn new(python_path: PathBuf) -> Result<Self, Argv0ProgramError> {
         let symlinked_path = || -> Option<PathBuf> {
-            let argv0 = env::args_os().nth(0)?;
+            let argv0 = env::args_os().next()?;
             let argv0_name = Path::new(argv0.as_os_str()).file_name()?;
             let path_buf = python_path.parent()?.join(Path::new(argv0_name));
             Some(path_buf)
@@ -177,14 +177,15 @@ impl Argv0Program {
     }
     
     fn to_command(&self) -> Command {
+        let mut args = env::args_os();
         let mut cmd = Command::new(self.argv0());
-        if let Some(arg0) = env::args_os().nth(0) {
+        if let Some(arg0) = args.next() {
             cmd.arg0(arg0);
         }
         if let Some(script) = self.python_script() {
             cmd.arg(script.as_os_str());
         }
-        cmd.args(env::args_os().skip(1));
+        cmd.args(args);
         cmd
     }
 }
