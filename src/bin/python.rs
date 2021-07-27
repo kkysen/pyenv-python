@@ -1,7 +1,8 @@
 #![forbid(unsafe_code)]
 
-use std::{env, io};
+use std::{env, fmt, io};
 use std::ffi::OsStr;
+use std::fmt::{Display, Formatter};
 use std::fs::File;
 use std::io::{BufRead, BufReader, Read};
 use std::path::{Path, PathBuf};
@@ -13,21 +14,32 @@ use is_executable::IsExecutable;
 use print_bytes::println_bytes;
 use thiserror::Error;
 
-use pyenv_python::python_path;
+use pyenv_python::{HasPython, Python};
 
 use crate::Argv0ProgramType::{Binary, PythonScript, Script};
 
-#[derive(Eq, PartialEq)]
+#[derive(Eq, PartialEq, Debug)]
 enum Argv0ProgramType {
     Binary,
     PythonScript,
     Script,
 }
 
+#[derive(Debug)]
 struct Argv0Program {
     python_path: PathBuf,
     path: PathBuf,
     exe_type: Argv0ProgramType,
+}
+
+impl Argv0Program {
+    pub fn python_path(&self) -> &Path {
+        self.python_path.as_path()
+    }
+    
+    pub fn path(&self) -> &Path {
+        self.path.as_path()
+    }
 }
 
 #[derive(Debug, Error)]
@@ -60,7 +72,7 @@ impl<'a> PathBufError<'a> {
         self.path.to_path_buf()
     }
     
-    fn with_message(&self, message: &'static str) -> Argv0ProgramError {
+    fn using_message(&self, message: &'static str) -> Argv0ProgramError {
         Argv0ProgramError {
             path: self.path(),
             message,
@@ -68,7 +80,7 @@ impl<'a> PathBufError<'a> {
         }
     }
     
-    fn with_source(&self, source: io::Error) -> Argv0ProgramError {
+    fn using_source(&self, source: io::Error) -> Argv0ProgramError {
         Argv0ProgramError {
             path: self.path(),
             message: "",
@@ -93,8 +105,8 @@ impl Argv0ProgramType {
     /// letting the OS run its shebang program.
     fn detect(path: &Path) -> Result<Self, Argv0ProgramError> {
         let error = PathBufError::new(path);
-        let with_src = |msg| error.with_message(msg).err();
-        let with_err = |e| error.with_source(e);
+        let with_src = |msg| error.using_message(msg).err();
+        let with_err = |e| error.using_source(e);
         
         if !path.exists() {
             with_src("does not exist")?;
@@ -177,6 +189,24 @@ impl Argv0Program {
     }
 }
 
+impl Display for Argv0Program {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        let [file_name, python_name] = [self.path(), self.python_path()]
+            .map(|path| path.file_name().unwrap().apply(Path::new));
+        let is_python = file_name == python_name;
+        if is_python || self.exe_type == PythonScript {
+            write!(f, "{}", python_name.display())?;
+            if !is_python {
+                write!(f, " ")?;
+            }
+        }
+        if !is_python {
+            write!(f, "{}", file_name.display())?;
+        }
+        Ok(())
+    }
+}
+
 /// Most of the same extension methods as [`std::os::unix::process::CommandExt`],
 /// except this is also implemented on `cfg(not(unix))`,
 /// either with a fallback (`exec`) or not at all (`arg0`).
@@ -221,8 +251,12 @@ impl CommandExt2 for Command {
 /// These are the only differences from actual `python`,
 /// and they don't clash with any of `python`'s actual options.
 fn main() -> anyhow::Result<()> {
-    let python_path_buf = python_path().context("python not found")?;
-    let python_path = python_path_buf.as_path();
+    let python = Python::new().context("python not found")?;
+    let program = python
+        .python()
+        .path()
+        .to_path_buf()
+        .apply(Argv0Program::new)?;
     let parent_level: Option<usize> = match env::args()
         .nth(1)
         .unwrap_or_default()
@@ -230,16 +264,20 @@ fn main() -> anyhow::Result<()> {
         "--path" => Some(0),
         "--dir" => Some(1),
         "--prefix" => Some(2),
+        "--which" => {
+            println!("`{}` using {}", program, python);
+            return Ok(());
+        }
         _ => None,
     };
     match parent_level {
-        None => Argv0Program::new(python_path_buf)?
+        None => program
             .to_command()
             .exec()
             .apply(Err)
             .context("failed to run python subprocess")?,
         Some(level) => {
-            let mut dir = python_path;
+            let mut dir = program.path();
             for current_level in 0..level {
                 dir = dir.parent()
                     .with_context(|| format!(

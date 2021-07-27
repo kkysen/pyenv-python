@@ -40,19 +40,19 @@ On my local computer, `$CARGO_HOME/bin/python --version` runs
 about 23x faster than `$PYENV_ROOT/shims/python --version`.
 
 ```console
-pyenv-python on  master [!] is 📦 v0.1.0 via 🦀 v1.44.0-nightly took 23s
+pyenv-python on  master is 📦 v0.4.0 via 🦀 v1.56.0-nightly took 8s
 ❯ hyperfine '$CARGO_HOME/bin/python --version' '$PYENV_ROOT/shims/python --version'
 Benchmark #1: $CARGO_HOME/bin/python --version
-  Time (mean ± σ):      11.8 ms ±   1.3 ms    [User: 1.3 ms, System: 9.6 ms]
-  Range (min … max):    10.1 ms …  18.4 ms    181 runs
+  Time (mean ± σ):      11.6 ms ±   1.6 ms    [User: 1.0 ms, System: 10.3 ms]
+  Range (min … max):    10.0 ms …  19.9 ms    120 runs
 
 Benchmark #2: $PYENV_ROOT/shims/python --version
-  Time (mean ± σ):     270.6 ms ±   6.6 ms    [User: 20.3 ms, System: 238.9 ms]
-  Range (min … max):   265.7 ms … 288.5 ms    10 runs
+  Time (mean ± σ):     258.4 ms ±   6.3 ms    [User: 18.5 ms, System: 213.7 ms]
+  Range (min … max):   249.1 ms … 273.3 ms    10 runs
 
 Summary
   '$CARGO_HOME/bin/python --version' ran
-   23.00 ± 2.62 times faster than '$PYENV_ROOT/shims/python --version'
+   22.19 ± 3.09 times faster than '$PYENV_ROOT/shims/python --version'
 ```
 
 ### Installation
@@ -64,12 +64,13 @@ For this `python` to wrap the `pyenv` `python` or the system `python`,
 `$CARGO_HOME/bin` must be before any other `python`s in `$PATH`.
 
 This `python` wrapper also supports a few other commands.
-* `python --path` prints the path of the `python` that it will execute.
-* `python --dir` prints the directory of the `python` that it will execute, 
+* `python --path` prints the path of the `python` or script that it will execute.
+* `python --dir` prints the directory of the `python` or script that it will execute, 
   i.e. `dirname $(python --path)`.
-* `python --prefix` prints the prefix directory of the `python` that it will execute,
+* `python --prefix` prints the prefix directory of the `python` or script that it will execute,
   i.e. `dirname $(python --dir)`.
   This is the same as what `python -c 'import sys; print(sys.prefix)'` prints.
+* `python --which` prints what command will be run using which python, explaining why that python.
 
 These extra commands aren't compatible with actual `python`,
 but they don't clash with any actual `python` commands, 

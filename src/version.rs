@@ -1,7 +1,9 @@
 use std::{env, io};
-use std::path::{Path, PathBuf};
-use std::io::{ErrorKind, BufReader, BufRead};
 use std::fs::File;
+use std::io::{BufRead, BufReader, ErrorKind};
+use std::path::{Path, PathBuf};
+
+use crate::{PyenvVersion, PyenvVersionFrom};
 
 trait FlipResult<T, E> {
     fn flip(self) -> Result<E, T>;
@@ -13,6 +15,12 @@ impl<T, E> FlipResult<T, E> for Result<T, E> {
             Ok(t) => Err(t),
             Err(e) => Ok(e),
         }
+    }
+}
+
+impl PyenvVersion {
+    pub fn from(from: PyenvVersionFrom) -> impl Fn(String) -> Self {
+        move |version| Self { version, from }
     }
 }
 
@@ -38,9 +46,7 @@ fn from_local_python_version_file() -> io::Result<String> {
 }
 
 fn global_python_version_file_path(root: &Path) -> PathBuf {
-    let mut path = root.to_path_buf();
-    path.push("version");
-    path
+    root.join("version")
 }
 
 fn from_global_python_version_file(root: &Path) -> io::Result<String> {
@@ -49,13 +55,14 @@ fn from_global_python_version_file(root: &Path) -> io::Result<String> {
 }
 
 // use inverted Result<>s here to short circuit on success instead of failure
-fn as_result(root: &Path) -> Result<(), String> {
-    env::var("PYENV_VERSION").flip()?;
-    from_local_python_version_file().flip()?;
-    from_global_python_version_file(root).flip()?;
+fn as_result(root: &Path) -> Result<(), PyenvVersion> {
+    use PyenvVersionFrom::*;
+    env::var("PYENV_VERSION").map(PyenvVersion::from(Shell)).flip()?;
+    from_local_python_version_file().map(PyenvVersion::from(Local)).flip()?;
+    from_global_python_version_file(root).map(PyenvVersion::from(Global)).flip()?;
     Ok(())
 }
 
-pub fn pyenv_version(root: &Path) -> Option<String> {
+pub fn pyenv_version(root: &Path) -> Option<PyenvVersion> {
     as_result(root).err()
 }

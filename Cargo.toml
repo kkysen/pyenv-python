@@ -1,6 +1,6 @@
 [package]
 name = "pyenv-python"
-version = "0.3.1"
+version = "0.4.0"
 authors = ["Khyber Sen <kkysen@gmail.com>"]
 edition = "2018"
 description = "A pyenv shim for python that's much faster than pyenv."
@@ -17,11 +17,10 @@ keywords = ["python", "pyenv"]
 print_bytes = "0.4.2"
 same-file = "1.0.6"
 is_executable = "1.0.1"
-thiserror = "1.0.25"
-anyhow = "1.0.40"
+thiserror = "1.0.26"
+anyhow = "1.0.42"
 apply = "0.3.0"
+dirs-next = "2.0.0"
 
 [profile.release]
 lto = true
-panic = "abort"
-opt-level = "z"
