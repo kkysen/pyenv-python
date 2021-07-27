@@ -43,7 +43,7 @@ On my local computer, `$CARGO_HOME/bin/python --version` runs
 about 23x faster than `$PYENV_ROOT/shims/python --version`.
 
 ```console
-pyenv-python on  master is 📦 v0.4.0 via 🦀 v1.56.0-nightly took 8s
+pyenv-python on  master is 📦 v0.4.0 via 🦀 v1.53.0 took 8s
 ❯ hyperfine '$CARGO_HOME/bin/python --version' '$PYENV_ROOT/shims/python --version'
 Benchmark #1: $CARGO_HOME/bin/python --version
   Time (mean ± σ):      11.6 ms ±   1.6 ms    [User: 1.0 ms, System: 10.3 ms]

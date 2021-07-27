@@ -192,8 +192,11 @@ impl Argv0Program {
 
 impl Display for Argv0Program {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        let [file_name, python_name] = [self.path(), self.python_path()]
-            .map(|path| path.file_name().unwrap().apply(Path::new));
+        let file_name = self.path().file_name().unwrap().apply(Path::new);
+        let python_name = self.python_path().file_name().unwrap().apply(Path::new);
+        // TODO only works in rustc 1.55, which isn't stable yet (as of 7/27/2021)
+        // let [file_name, python_name] = [self.path(), self.python_path()]
+        //     .map(|path| path.file_name().unwrap().apply(Path::new));
         let is_python = file_name == python_name;
         if is_python || self.exe_type == PythonScript {
             write!(f, "{}", python_name.display())?;
