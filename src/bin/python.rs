@@ -91,7 +91,7 @@ impl<'a> PathBufError<'a> {
 
 impl Argv0ProgramType {
     /// Detect the type of argv0 in `python`'s directory.
-    /// [`path`] is already in `python`'s directory.
+    /// `path` is already in `python`'s directory.
     /// First, check if it's an existing executable file.
     /// Then, check if it's a script by looking for a shebang #!.
     ///

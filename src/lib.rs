@@ -100,7 +100,7 @@ impl Display for PyenvVersion {
 
 impl PyenvRoot {
     /// Returns the current pyenv version as determined by
-    /// [https://github.com/pyenv/pyenv#choosing-the-python-version].
+    /// <https://github.com/pyenv/pyenv#choosing-the-python-version>.
     fn version(&self) -> Result<PyenvVersion, ()> {
         self
             .root
@@ -305,7 +305,7 @@ pub enum PyenvError {
     /// The `pyenv` version can't be found anywhere,
     /// neither the shell, local, or global versions.
     ///
-    /// See [https://github.com/pyenv/pyenv#choosing-the-python-version] for the algorithm.
+    /// See <https://github.com/pyenv/pyenv#choosing-the-python-version> for the algorithm.
     #[error("pyenv python can't be found because no version was found in shell, local, or global using root {root}")]
     NoVersion {
         root: PyenvRoot,
