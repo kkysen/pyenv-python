@@ -40,7 +40,7 @@ such as `python2` or `python3`.
 
 ### Performance
 On my local computer, `$CARGO_HOME/bin/python --version` runs 
-about 23x faster than `$PYENV_ROOT/shims/python --version`.
+about 22x faster than `$PYENV_ROOT/shims/python --version`.
 
 ```console
 pyenv-python on  master is 📦 v0.4.0 via 🦀 v1.53.0 took 8s
