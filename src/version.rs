@@ -57,9 +57,12 @@ fn from_global_python_version_file(root: &Path) -> io::Result<String> {
 // use inverted Result<>s here to short circuit on success instead of failure
 fn as_result(root: &Path) -> Result<(), PyenvVersion> {
     use PyenvVersionFrom::*;
-    env::var("PYENV_VERSION").map(PyenvVersion::from(Shell)).flip()?;
-    from_local_python_version_file().map(PyenvVersion::from(Local)).flip()?;
-    from_global_python_version_file(root).map(PyenvVersion::from(Global)).flip()?;
+    fn f<E>(version: PyenvVersionFrom, result: Result<String, E>) -> Result<E, PyenvVersion> {
+        result.map(PyenvVersion::from(version)).flip()
+    }
+    f(Shell, env::var("PYENV_VERSION"))?;
+    f(Local, from_local_python_version_file())?;
+    f(Global, from_global_python_version_file(root))?;
     Ok(())
 }
 

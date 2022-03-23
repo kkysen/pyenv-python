@@ -130,7 +130,9 @@ impl Argv0ProgramType {
             // it might be UTF-8, so String decoding will fail
             let mut first_line = String::new();
             reader.read_line(&mut first_line).map_err(with_err)?;
-            let is_python_script = ["python", "pip"].iter().any(|word| first_line.contains(word));
+            let is_python_script = ["python", "pip"]
+                .iter()
+                .any(|word| first_line.contains(word));
             if is_python_script {
                 PythonScript
             } else {
@@ -162,7 +164,11 @@ impl Argv0Program {
     
     /// The path to use as argv0.
     fn argv0(&self) -> &Path {
-        let Self { python_path, path, exe_type } = self;
+        let Self {
+            python_path,
+            path,
+            exe_type,
+        } = self;
         match exe_type {
             Binary => path,
             PythonScript => python_path,

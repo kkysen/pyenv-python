@@ -179,8 +179,10 @@ impl PythonExecutable {
     }
     
     pub fn name(&self) -> &OsStr {
-        self.name.as_deref()
-            .unwrap_or_else(|| self.path.file_name()
+        self.name
+            .as_deref()
+            .unwrap_or_else(|| self.path
+                .file_name()
                 .expect("python executable should always have a file name (i.e. not root)")
             )
     }
@@ -222,7 +224,7 @@ impl PythonExecutable {
                 path,
                 handle,
             }),
-            Err(e) => Err((e, path))
+            Err(e) => Err((e, path)),
         }
     }
     
