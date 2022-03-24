@@ -185,9 +185,7 @@ impl Argv0Program {
     fn to_command(&self) -> Command {
         let mut args = env::args_os();
         let mut cmd = Command::new(self.argv0());
-        if let Some(arg0) = args.next() {
-            cmd.arg0(arg0);
-        }
+        if let Some(_) = args.next() {}
         if let Some(script) = self.python_script() {
             cmd.arg(script.as_os_str());
         }

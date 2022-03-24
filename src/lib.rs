@@ -444,6 +444,30 @@ impl Python {
     pub fn new() -> Result<Self, PythonError> {
         match Pyenv::new() {
             Ok(pyenv) => Ok(Self::Pyenv(pyenv)),
+            Err(PyenvError::NoVersion { root }) => match Self::system(Some(root.clone())) {
+                Ok(system_python) => Ok(Self::System(system_python)),
+                Err(system_python_error) => Err(PythonError {
+                    pyenv: PyenvError::NoVersion { root },
+                    system: system_python_error,
+                }),
+            },
+            Err(PyenvError::NoExecutable {
+                    error,
+                    root,
+                    version,
+                    python_path,
+                }) => match Self::system(Some(root.clone())) {
+                Ok(system_python) => Ok(Self::System(system_python)),
+                Err(system_python_error) => Err(PythonError {
+                    pyenv: PyenvError::NoExecutable {
+                        error,
+                        root,
+                        version,
+                        python_path,
+                    },
+                    system: system_python_error,
+                }),
+            },
             Err(pyenv_error) => match Self::system(None) {
                 Ok(system_python) => Ok(Self::System(system_python)),
                 Err(system_python_error) => Err(PythonError {
