@@ -1,7 +1,7 @@
-use std::{env, io};
 use std::fs::File;
 use std::io::{BufRead, BufReader, ErrorKind};
 use std::path::{Path, PathBuf};
+use std::{env, io};
 
 use crate::{PyenvVersion, PyenvVersionFrom};
 

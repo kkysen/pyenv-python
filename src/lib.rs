@@ -1,10 +1,10 @@
 #![forbid(unsafe_code)]
 
-use std::{env, fmt, io};
 use std::ffi::{OsStr, OsString};
 use std::fmt::{Debug, Display, Formatter};
 use std::fs::File;
 use std::path::{Path, PathBuf};
+use std::{env, fmt, io};
 
 use apply::Apply;
 use is_executable::IsExecutable;
@@ -14,7 +14,7 @@ use thiserror::Error;
 mod version;
 
 /// A root `pyenv` directory.
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct PyenvRoot {
     root: PathBuf,
 }
@@ -55,11 +55,13 @@ impl PyenvRoot {
             .or_else(|| dirs_next::home_dir().map(|home| home.join(".pyenv")))
             .ok_or(NoEnvVarOrHomeDir)?;
         match root.metadata() {
-            Ok(metadata) => if metadata.is_dir() {
-                Ok(Self { root })
-            } else {
-                Err(NotADir { root })
-            },
+            Ok(metadata) => {
+                if metadata.is_dir() {
+                    Ok(Self { root })
+                } else {
+                    Err(NotADir { root })
+                }
+            }
             Err(source) => Err(IOError { root, source }),
         }
     }
@@ -86,7 +88,7 @@ impl Display for PyenvVersionFrom {
 
 /// A `pyenv` version, either a `python` version or a virtualenv name,
 /// and where it was looked-up from.
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct PyenvVersion {
     version: String,
     from: PyenvVersionFrom,
@@ -102,13 +104,9 @@ impl PyenvRoot {
     /// Returns the current pyenv version as determined by
     /// <https://github.com/pyenv/pyenv#choosing-the-python-version>.
     fn version(&self) -> Result<PyenvVersion, ()> {
-        self
-            .root
-            .as_path()
-            .apply(version::pyenv_version)
-            .ok_or(())
+        self.root.as_path().apply(version::pyenv_version).ok_or(())
     }
-    
+
     fn python_path(&self, path_components: &[&str]) -> UncheckedPythonPath {
         let mut path = self.root.clone();
         for path_component in path_components {
@@ -117,19 +115,13 @@ impl PyenvRoot {
         path.push("python");
         UncheckedPythonPath::from_existing(path)
     }
-    
+
     fn python_version_path(&self, version: &PyenvVersion) -> UncheckedPythonPath {
-        self.python_path(&[
-            "versions",
-            version.version.as_str(),
-            "bin",
-        ])
+        self.python_path(&["versions", version.version.as_str(), "bin"])
     }
-    
+
     fn python_shim_path(&self) -> UncheckedPythonPath {
-        self.python_path(&[
-            "shims",
-        ])
+        self.python_path(&["shims"])
     }
 }
 
@@ -173,24 +165,23 @@ impl PythonExecutable {
     pub fn path(&self) -> &Path {
         self.path.as_path()
     }
-    
+
     pub fn into_path(self) -> PathBuf {
         self.path
     }
-    
+
     pub fn name(&self) -> &OsStr {
-        self.name
-            .as_deref()
-            .unwrap_or_else(|| self.path
+        self.name.as_deref().unwrap_or_else(|| {
+            self.path
                 .file_name()
                 .expect("python executable should always have a file name (i.e. not root)")
-            )
+        })
     }
-    
+
     pub fn handle(&self) -> &Handle {
         &self.handle
     }
-    
+
     pub fn file(&self) -> &File {
         self.handle.as_file()
     }
@@ -218,7 +209,8 @@ impl PythonExecutable {
                 return Err(NotExecutable);
             }
             Ok(handle)
-        })(path.as_path()) {
+        })(path.as_path())
+        {
             Ok(handle) => Ok(Self {
                 name: None,
                 path,
@@ -227,7 +219,7 @@ impl PythonExecutable {
             Err(e) => Err((e, path)),
         }
     }
-    
+
     pub fn current() -> io::Result<Self> {
         let name = env::args_os()
             .next()
@@ -238,11 +230,7 @@ impl PythonExecutable {
         // TODO Though in all normal invocations (like as a symlink), this won't happen.
         let path = env::current_exe()?;
         let handle = Handle::from_path(path.as_path())?;
-        Ok(Self {
-            name,
-            path,
-            handle,
-        })
+        Ok(Self { name, path, handle })
     }
 }
 
@@ -250,7 +238,7 @@ impl UncheckedPythonPath {
     pub fn from_existing(path: PathBuf) -> Self {
         Self { path }
     }
-    
+
     pub fn check(self) -> Result<PythonExecutable, (PyenvPythonExecutableError, PathBuf)> {
         PythonExecutable::new(self.path)
     }
@@ -258,7 +246,7 @@ impl UncheckedPythonPath {
 
 pub trait HasPython {
     fn python(&self) -> &PythonExecutable;
-    
+
     fn into_python(self) -> PythonExecutable;
 }
 
@@ -266,7 +254,7 @@ impl HasPython for PythonExecutable {
     fn python(&self) -> &PythonExecutable {
         self
     }
-    
+
     fn into_python(self) -> PythonExecutable {
         self
     }
@@ -290,7 +278,7 @@ impl HasPython for Pyenv {
     fn python(&self) -> &PythonExecutable {
         &self.python_path
     }
-    
+
     fn into_python(self) -> PythonExecutable {
         self.python_path
     }
@@ -302,20 +290,20 @@ pub enum PyenvError {
     // The `pyenv` root couldn't be found, so the `pyenv` version or `python` executable couldn't.
     #[error("pyenv python can't be found because no root was found: {error}")]
     NoRoot {
-        #[from] error: PyenvRootError,
+        #[from]
+        error: PyenvRootError,
     },
     /// The `pyenv` version can't be found anywhere,
     /// neither the shell, local, or global versions.
     ///
     /// See <https://github.com/pyenv/pyenv#choosing-the-python-version> for the algorithm.
     #[error("pyenv python can't be found because no version was found in shell, local, or global using root {root}")]
-    NoVersion {
-        root: PyenvRoot,
-    },
+    NoVersion { root: PyenvRoot },
     /// The `pyenv` `python` executable can't be found or is not an executable.
     #[error("pyenv {version} can't be found at {python_path}")]
     NoExecutable {
-        #[source] error: PyenvPythonExecutableError,
+        #[source]
+        error: PyenvPythonExecutableError,
         root: PyenvRoot,
         version: PyenvVersion,
         python_path: PathBuf,
@@ -336,12 +324,14 @@ impl Pyenv {
             Ok(version) => version,
         };
         let python_path = match root.python_version_path(&version).check() {
-            Err((error, python_path)) => return Err(NoExecutable {
-                error,
-                root,
-                version,
-                python_path,
-            }),
+            Err((error, python_path)) => {
+                return Err(NoExecutable {
+                    error,
+                    root,
+                    version,
+                    python_path,
+                })
+            }
             Ok(path) => path,
         };
         Ok(Self {
@@ -363,10 +353,10 @@ pub enum Python {
 impl Display for Python {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         match self {
-            Self::Pyenv(pyenv) =>
-                write!(f, "{}", pyenv),
-            Self::System(python_executable) =>
-                write!(f, "system python on $PATH at {}", python_executable),
+            Self::Pyenv(pyenv) => write!(f, "{}", pyenv),
+            Self::System(python_executable) => {
+                write!(f, "system python on $PATH at {}", python_executable)
+            }
         }
     }
 }
@@ -378,7 +368,7 @@ impl HasPython for Python {
             Self::System(python) => python.python(),
         }
     }
-    
+
     fn into_python(self) -> PythonExecutable {
         match self {
             Self::Pyenv(pyenv) => pyenv.into_python(),
@@ -452,11 +442,11 @@ impl Python {
                 }),
             },
             Err(PyenvError::NoExecutable {
-                    error,
-                    root,
-                    version,
-                    python_path,
-                }) => match Self::system(Some(root.clone())) {
+                error,
+                root,
+                version,
+                python_path,
+            }) => match Self::system(Some(root.clone())) {
                 Ok(system_python) => Ok(Self::System(system_python)),
                 Err(system_python_error) => Err(PythonError {
                     pyenv: PyenvError::NoExecutable {
