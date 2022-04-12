@@ -1,12 +1,12 @@
 #![forbid(unsafe_code)]
 
-use std::{env, fmt, io};
 use std::ffi::OsStr;
 use std::fmt::{Display, Formatter};
 use std::fs::File;
 use std::io::{BufRead, BufReader, Read};
 use std::path::{Path, PathBuf};
 use std::process::Command;
+use std::{env, fmt, io};
 
 use anyhow::Context;
 use apply::Apply;
@@ -36,7 +36,7 @@ impl Argv0Program {
     pub fn python_path(&self) -> &Path {
         self.python_path.as_path()
     }
-    
+
     pub fn path(&self) -> &Path {
         self.path.as_path()
     }
@@ -63,15 +63,13 @@ struct PathBufError<'a> {
 
 impl<'a> PathBufError<'a> {
     fn new(path: &'a Path) -> Self {
-        Self {
-            path,
-        }
+        Self { path }
     }
-    
+
     fn path(&self) -> PathBuf {
         self.path.to_path_buf()
     }
-    
+
     fn using_message(&self, message: &'static str) -> Argv0ProgramError {
         Argv0ProgramError {
             path: self.path(),
@@ -79,7 +77,7 @@ impl<'a> PathBufError<'a> {
             source: None,
         }
     }
-    
+
     fn using_source(&self, source: io::Error) -> Argv0ProgramError {
         Argv0ProgramError {
             path: self.path(),
@@ -107,7 +105,7 @@ impl Argv0ProgramType {
         let error = PathBufError::new(path);
         let with_src = |msg| error.using_message(msg).err();
         let with_err = |e| error.using_source(e);
-        
+
         if !path.exists() {
             with_src("does not exist")?;
         } else if !path.is_file() {
@@ -139,7 +137,7 @@ impl Argv0ProgramType {
                 Script
             }
         };
-        
+
         Ok(exe_type)
     }
 }
@@ -152,8 +150,7 @@ impl Argv0Program {
             let path_buf = python_path.parent()?.join(Path::new(argv0_name));
             Some(path_buf)
         };
-        let path = symlinked_path()
-            .unwrap_or_else(|| python_path.to_path_buf());
+        let path = symlinked_path().unwrap_or_else(|| python_path.to_path_buf());
         let exe_type = Argv0ProgramType::detect(path.as_path())?;
         Ok(Self {
             python_path,
@@ -161,7 +158,7 @@ impl Argv0Program {
             exe_type,
         })
     }
-    
+
     /// The path to use as argv0.
     fn argv0(&self) -> &Path {
         let Self {
@@ -173,21 +170,19 @@ impl Argv0Program {
             Binary => path,
             PythonScript => python_path,
             Script => path,
-        }.as_path()
+        }
+        .as_path()
     }
-    
+
     /// The python script path, if it's valid.
     fn python_script(&self) -> Option<&Path> {
-        Some(self.path.as_path())
-            .filter(|_| self.exe_type == PythonScript)
+        Some(self.path.as_path()).filter(|_| self.exe_type == PythonScript)
     }
-    
+
     fn to_command(&self) -> Command {
         let mut args = env::args_os();
         let mut cmd = Command::new(self.argv0());
-        if let Some(arg0) = args.next() {
-            cmd.arg0(arg0);
-        }
+        if let Some(_) = args.next() {}
         if let Some(script) = self.python_script() {
             cmd.arg(script.as_os_str());
         }
@@ -222,7 +217,7 @@ impl Display for Argv0Program {
 /// either with a fallback (`exec`) or not at all (`arg0`).
 trait CommandExt2 {
     fn exec(&mut self) -> io::Error;
-    
+
     fn arg0<S: AsRef<OsStr>>(&mut self, _arg: S) -> &mut Command;
 }
 
@@ -230,14 +225,11 @@ trait CommandExt2 {
 impl CommandExt2 for Command {
     fn exec(&mut self) -> io::Error {
         match self.status() {
-            Ok(status) => status
-                .code()
-                .unwrap_or_default()
-                .apply(std::process::exit),
+            Ok(status) => status.code().unwrap_or_default().apply(std::process::exit),
             Err(e) => return e,
         }
     }
-    
+
     fn arg0<S: AsRef<OsStr>>(&mut self, _arg: S) -> &mut Command {
         self
     }
@@ -248,7 +240,7 @@ impl CommandExt2 for Command {
     fn exec(&mut self) -> io::Error {
         std::os::unix::process::CommandExt::exec(self)
     }
-    
+
     fn arg0<S: AsRef<OsStr>>(&mut self, arg: S) -> &mut Self {
         std::os::unix::process::CommandExt::arg0(self, arg)
     }
@@ -267,10 +259,7 @@ fn main() -> anyhow::Result<()> {
         .path()
         .to_path_buf()
         .apply(Argv0Program::new)?;
-    let parent_level: Option<usize> = match env::args()
-        .nth(1)
-        .unwrap_or_default()
-        .as_str() {
+    let parent_level: Option<usize> = match env::args().nth(1).unwrap_or_default().as_str() {
         "--path" => Some(0),
         "--dir" => Some(1),
         "--prefix" => Some(2),
@@ -289,11 +278,12 @@ fn main() -> anyhow::Result<()> {
         Some(level) => {
             let mut dir = program.path();
             for current_level in 0..level {
-                dir = dir.parent()
-                    .with_context(|| format!(
+                dir = dir.parent().with_context(|| {
+                    format!(
                         "python --path doesn't have {} parent directories",
                         current_level,
-                    ))?;
+                    )
+                })?;
             }
             println_bytes(dir);
         }
